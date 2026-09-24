@@ -1,3 +1,4 @@
+```javascript
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "http://localhost:8080";
@@ -47,13 +48,11 @@ const apiRequest = async (
   }
 
   // ========================================
-  // SESSION EXPIRED
+  // 401 - UNAUTHORIZED
+  // Session expired / invalid token
   // ========================================
 
-  if (
-    response.status === 401 ||
-    response.status === 403
-  ) {
+  if (response.status === 401) {
     localStorage.removeItem("token");
 
     if (
@@ -69,7 +68,18 @@ const apiRequest = async (
   }
 
   // ========================================
-  // NO CONTENT
+  // 403 - FORBIDDEN
+  // User is logged in but has no permission
+  // ========================================
+
+  if (response.status === 403) {
+    throw new Error(
+      "You do not have permission to perform this action."
+    );
+  }
+
+  // ========================================
+  // 204 - NO CONTENT
   // ========================================
 
   if (response.status === 204) {
@@ -87,9 +97,7 @@ const apiRequest = async (
 
   if (
     contentType &&
-    contentType.includes(
-      "application/json"
-    )
+    contentType.includes("application/json")
   ) {
     data = await response.json();
   } else {
@@ -225,3 +233,4 @@ export const isAuthenticated = () => {
     localStorage.getItem("token")
   );
 };
+```
