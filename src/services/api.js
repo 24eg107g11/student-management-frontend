@@ -1,236 +1,280 @@
-```javascript
 const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:8080";
-
-// ========================================
-// GET JWT TOKEN
-// ========================================
+    "https://studentmanagement-backend-sik3.onrender.com";
 
 const getToken = () => {
-  return localStorage.getItem("token");
+    return localStorage.getItem("token");
 };
 
-// ========================================
-// COMMON API REQUEST
-// ========================================
+const getHeaders = () => {
+    const token = getToken();
 
-const apiRequest = async (
-  endpoint,
-  options = {}
-) => {
-  const token = getToken();
+    const headers = {
+        "Content-Type": "application/json",
+    };
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
-  // Add JWT token
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  let response;
-
-  try {
-    response = await fetch(
-      `${API_URL}${endpoint}`,
-      {
-        ...options,
-        headers,
-      }
-    );
-  } catch (error) {
-    throw new Error(
-      "Cannot connect to backend. Make sure Spring Boot is running on port 8080."
-    );
-  }
-
-  // ========================================
-  // 401 - UNAUTHORIZED
-  // Session expired / invalid token
-  // ========================================
-
-  if (response.status === 401) {
-    localStorage.removeItem("token");
-
-    if (
-      window.location.pathname !== "/" &&
-      window.location.pathname !== "/register"
-    ) {
-      window.location.href = "/";
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
     }
 
-    throw new Error(
-      "Session expired. Please login again."
-    );
-  }
-
-  // ========================================
-  // 403 - FORBIDDEN
-  // User is logged in but has no permission
-  // ========================================
-
-  if (response.status === 403) {
-    throw new Error(
-      "You do not have permission to perform this action."
-    );
-  }
-
-  // ========================================
-  // 204 - NO CONTENT
-  // ========================================
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  // ========================================
-  // READ RESPONSE
-  // ========================================
-
-  const contentType =
-    response.headers.get("content-type");
-
-  let data;
-
-  if (
-    contentType &&
-    contentType.includes("application/json")
-  ) {
-    data = await response.json();
-  } else {
-    data = await response.text();
-  }
-
-  // ========================================
-  // HANDLE API ERROR
-  // ========================================
-
-  if (!response.ok) {
-    let message = "Request failed";
-
-    if (typeof data === "string") {
-      message =
-        data || "Request failed";
-    } else if (data?.message) {
-      message = data.message;
-    } else if (data?.error) {
-      message = data.error;
-    }
-
-    throw new Error(message);
-  }
-
-  return data;
+    return headers;
 };
 
-// ========================================
+const handleResponse = async (response) => {
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        window.location.href = "/";
+
+        throw new Error(
+            "Session expired. Please login again."
+        );
+    }
+
+    if (response.status === 403) {
+        throw new Error(
+            "You do not have permission to perform this action."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            "Something went wrong. Please try again."
+        );
+    }
+
+    return data;
+};
+
+
+// ===============================
 // AUTH
-// ========================================
+// ===============================
 
-export const registerUser = async (
-  userData
-) => {
-  return apiRequest(
-    "/api/auth/register",
-    {
-      method: "POST",
-      body: JSON.stringify(userData),
-    }
-  );
+export const registerUser = async (userData) => {
+
+    const response = await fetch(
+        `${API_URL}/api/auth/register`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify(userData),
+        }
+    );
+
+    return handleResponse(response);
 };
 
-export const loginUser = async (
-  loginData
-) => {
-  return apiRequest(
-    "/api/auth/login",
-    {
-      method: "POST",
-      body: JSON.stringify(loginData),
-    }
-  );
+
+export const loginUser = async (loginData) => {
+
+    const response = await fetch(
+        `${API_URL}/api/auth/login`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify(loginData),
+        }
+    );
+
+    return handleResponse(response);
 };
 
-// ========================================
-// STUDENTS
-// ========================================
+
+// ===============================
+// STUDENTS - GET
+// ===============================
 
 export const getStudents = async () => {
-  return apiRequest(
-    "/api/students",
-    {
-      method: "GET",
-    }
-  );
+
+    const response = await fetch(
+        `${API_URL}/api/students`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+        }
+    );
+
+    return handleResponse(response);
 };
 
-export const getStudent = async (
-  id
-) => {
-  return apiRequest(
-    `/api/students/${id}`,
-    {
-      method: "GET",
-    }
-  );
+
+export const getStudentById = async (id) => {
+
+    const response = await fetch(
+        `${API_URL}/api/students/${id}`,
+        {
+            method: "GET",
+            headers: getHeaders(),
+        }
+    );
+
+    return handleResponse(response);
 };
 
-export const addStudent = async (
-  student
-) => {
-  return apiRequest(
-    "/api/students",
-    {
-      method: "POST",
-      body: JSON.stringify(student),
-    }
-  );
+
+// ===============================
+// ADD STUDENT
+// ===============================
+
+export const addStudent = async (studentData) => {
+
+    const response = await fetch(
+        `${API_URL}/api/students`,
+        {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify(studentData),
+        }
+    );
+
+    return handleResponse(response);
 };
+
+
+// ===============================
+// CREATE STUDENT
+// Alias of addStudent
+// ===============================
+
+export const createStudent = addStudent;
+
+
+// ===============================
+// UPDATE STUDENT
+// ===============================
 
 export const updateStudent = async (
-  id,
-  student
+    id,
+    studentData
 ) => {
-  return apiRequest(
-    `/api/students/${id}`,
-    {
-      method: "PUT",
-      body: JSON.stringify(student),
-    }
-  );
+
+    const response = await fetch(
+        `${API_URL}/api/students/${id}`,
+        {
+            method: "PUT",
+            headers: getHeaders(),
+            body: JSON.stringify(studentData),
+        }
+    );
+
+    return handleResponse(response);
 };
 
-export const deleteStudent = async (
-  id
-) => {
-  return apiRequest(
-    `/api/students/${id}`,
-    {
-      method: "DELETE",
+
+// ===============================
+// DELETE STUDENT
+// ===============================
+
+export const deleteStudent = async (id) => {
+
+    const response = await fetch(
+        `${API_URL}/api/students/${id}`,
+        {
+            method: "DELETE",
+            headers: getHeaders(),
+        }
+    );
+
+    if (response.status === 401) {
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        window.location.href = "/";
+
+        throw new Error(
+            "Session expired. Please login again."
+        );
     }
-  );
+
+    if (response.status === 403) {
+
+        throw new Error(
+            "You do not have permission to delete students."
+        );
+    }
+
+    if (!response.ok) {
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+        throw new Error(
+            data.message ||
+            "Failed to delete student."
+        );
+    }
+
+    return true;
 };
 
-// ========================================
+
+// ===============================
 // LOGOUT
-// ========================================
+// ===============================
 
 export const logoutUser = () => {
-  localStorage.removeItem("token");
 
-  window.location.href = "/";
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    window.location.href = "/";
 };
 
-// ========================================
-// AUTHENTICATION CHECK
-// ========================================
+
+// Keep "logout" available too
+export const logout = logoutUser;
+
+
+// ===============================
+// AUTH CHECK
+// ===============================
 
 export const isAuthenticated = () => {
-  return Boolean(
-    localStorage.getItem("token")
-  );
+
+    return !!localStorage.getItem("token");
 };
-```
+
+
+// ===============================
+// DEFAULT EXPORT
+// ===============================
+
+export default {
+
+    registerUser,
+
+    loginUser,
+
+    getStudents,
+
+    getStudentById,
+
+    addStudent,
+
+    createStudent,
+
+    updateStudent,
+
+    deleteStudent,
+
+    logoutUser,
+
+    logout,
+
+    isAuthenticated,
+};
